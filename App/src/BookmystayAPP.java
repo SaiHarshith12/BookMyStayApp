@@ -1,69 +1,115 @@
-abstract class Room {
-    protected String roomType;
-    protected int beds;
-    protected int size; // in sqft
-    protected double pricePerNight;
-    protected int availableRooms;
+import java.util.*;
 
-    public Room(String roomType, int beds, int size, double pricePerNight, int availableRooms) {
-        // Defensive programming: validate inputs
-        if (beds <= 0) throw new IllegalArgumentException("Beds must be > 0");
-        if (size <= 0) throw new IllegalArgumentException("Size must be > 0");
-        if (pricePerNight < 0) throw new IllegalArgumentException("Price cannot be negative");
-        if (availableRooms < 0) throw new IllegalArgumentException("Available rooms cannot be negative");
+// Room and Booking classes (simplified for cancellation demo)
+class Booking {
+    private String guestName;
+    private String roomType;
+    private String reservationID;
 
+    public Booking(String guestName, String roomType, String reservationID) {
+        this.guestName = guestName;
         this.roomType = roomType;
-        this.beds = beds;
-        this.size = size;
-        this.pricePerNight = pricePerNight;
-        this.availableRooms = availableRooms;
+        this.reservationID = reservationID;
     }
 
-    public void displayDetails() {
-        System.out.println(roomType + ":");
-        System.out.println("Beds: " + beds);
-        System.out.println("Size: " + size + " sqft");
-        System.out.println("Price per night: " + pricePerNight);
-        System.out.println("Available: " + availableRooms + "\n");
-    }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
+    public String getReservationID() { return reservationID; }
 }
 
-// Concrete room classes
-class SingleRoom extends Room {
-    public SingleRoom(int availableRooms) {
-        super("Single Room", 1, 250, 1500.0, availableRooms);
-    }
-}
+// Inventory manager handling bookings and cancellations
+class HotelInventory {
+    private Map<String, Integer> roomInventory = new HashMap<>();
+    private Set<String> allocatedRoomIDs = new HashSet<>();
+    private List<Booking> confirmedBookings = new ArrayList<>();
+    private int roomCounter = 100; // for unique room IDs
 
-class DoubleRoom extends Room {
-    public DoubleRoom(int availableRooms) {
-        super("Double Room", 2, 400, 2500.0, availableRooms);
+    public HotelInventory() {
+        roomInventory.put("Single Room", 5);
+        roomInventory.put("Double Room", 3);
+        roomInventory.put("Suite Room", 2);
     }
-}
 
-class SuiteRoom extends Room {
-    public SuiteRoom(int availableRooms) {
-        super("Suite Room", 3, 750, 5000.0, availableRooms);
+    // Allocate a room
+    public Booking confirmBooking(String guestName, String roomType) {
+        int available = roomInventory.getOrDefault(roomType, 0);
+        if (available <= 0) {
+            System.out.println("No available rooms for " + guestName + " (" + roomType + ")");
+            return null;
+        }
+        String roomID = generateRoomID(roomType);
+        roomInventory.put(roomType, available - 1);
+        Booking booking = new Booking(guestName, roomType, roomID);
+        confirmedBookings.add(booking);
+        System.out.println("Booking confirmed: " + guestName + ", " + roomType + " (" + roomID + ")");
+        return booking;
+    }
+
+    // Generate unique room ID
+    private String generateRoomID(String roomType) {
+        String id;
+        do {
+            id = roomType.substring(0, 1).toUpperCase() + roomCounter++;
+        } while (allocatedRoomIDs.contains(id));
+        allocatedRoomIDs.add(id);
+        return id;
+    }
+
+    // Cancel a booking
+    public void cancelBooking(String reservationID) {
+        Booking bookingToCancel = null;
+        for (Booking b : confirmedBookings) {
+            if (b.getReservationID().equals(reservationID)) {
+                bookingToCancel = b;
+                break;
+            }
+        }
+
+        if (bookingToCancel == null) {
+            System.out.println("Cancellation failed: Reservation ID " + reservationID + " does not exist.");
+            return;
+        }
+
+        // Restore inventory and release room ID
+        String roomType = bookingToCancel.getRoomType();
+        roomInventory.put(roomType, roomInventory.getOrDefault(roomType, 0) + 1);
+        allocatedRoomIDs.remove(reservationID);
+        confirmedBookings.remove(bookingToCancel);
+
+        System.out.println("Booking cancelled successfully. Inventory restored for room type: " + roomType);
+        System.out.println("Released Reservation ID: " + reservationID);
+        System.out.println("Updated " + roomType + " Availability: " + roomInventory.get(roomType) + "\n");
+    }
+
+    // Display current bookings
+    public void displayBookings() {
+        System.out.println("=== Current Confirmed Bookings ===");
+        for (Booking b : confirmedBookings) {
+            System.out.println(b.getGuestName() + " - " + b.getRoomType() + " (" + b.getReservationID() + ")");
+        }
+        System.out.println();
     }
 }
 
 // Main application
 public class BookmystayAPP {
     public static void main(String[] args) {
-        try {
-            Room[] rooms = {
-                    new SingleRoom(5),
-                    new DoubleRoom(3),
-                    new SuiteRoom(2)
-            };
+        HotelInventory inventory = new HotelInventory();
 
-            System.out.println("=== Hotel Room Initialization ===\n");
-            for (Room room : rooms) {
-                room.displayDetails();
-            }
+        // Confirm bookings
+        Booking b1 = inventory.confirmBooking("Abhi", "Single Room");
+        Booking b2 = inventory.confirmBooking("Subha", "Double Room");
 
-        } catch (IllegalArgumentException e) {
-            System.out.println("Error initializing rooms: " + e.getMessage());
+        inventory.displayBookings();
+
+        // Cancel a booking
+        if (b1 != null) {
+            inventory.cancelBooking(b1.getReservationID());
         }
+
+        inventory.displayBookings();
+
+        // Attempt to cancel a non-existent booking
+        inventory.cancelBooking("NonExistent-999");
     }
 }
