@@ -1,8 +1,9 @@
+import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 
-// Booking class
-class Booking {
+// Booking class (Serializable)
+class Booking implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String guestName;
     private String roomType;
     private String roomID;
@@ -18,10 +19,12 @@ class Booking {
     public String getRoomID() { return roomID; }
 }
 
-// Thread-safe Inventory Manager
-class HotelInventory {
+// HotelInventory with persistence
+class HotelInventory implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private Map<String, Integer> roomInventory = new HashMap<>();
-    private Map<String, Integer> roomCounters = new HashMap<>(); // for unique IDs
+    private Map<String, Integer> roomCounters = new HashMap<>();
     private List<Booking> confirmedBookings = new ArrayList<>();
 
     public HotelInventory() {
@@ -33,19 +36,48 @@ class HotelInventory {
         roomCounters.put("Suite Room", 1);
     }
 
-    // Thread-safe booking method
+    // Load inventory from file
+    public static HotelInventory loadFromFile(String filename) {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
+            return (HotelInventory) ois.readObject();
+        } catch (FileNotFoundException e) {
+            System.out.println("No valid inventory data found. Starting fresh.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error reading inventory data. Starting fresh.");
+        }
+        return new HotelInventory();
+    }
+
+    // Save inventory to file
+    public void saveToFile(String filename) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
+            oos.writeObject(this);
+            System.out.println("Inventory saved successfully.\n");
+        } catch (IOException e) {
+            System.out.println("Error saving inventory data: " + e.getMessage());
+        }
+    }
+
+    // Display current inventory
+    public void displayInventory() {
+        System.out.println("Current Inventory:");
+        for (String type : roomInventory.keySet()) {
+            System.out.println(type.split(" ")[0] + ": " + roomInventory.get(type));
+        }
+        System.out.println();
+    }
+
+    // Thread-safe booking
     public synchronized Booking confirmBooking(String guestName, String roomType) {
         int available = roomInventory.getOrDefault(roomType, 0);
         if (available <= 0) {
             System.out.println("No available rooms for Guest: " + guestName + " (" + roomType + ")");
             return null;
         }
-        // Allocate room ID
         int counter = roomCounters.get(roomType);
         String roomID = roomType.split(" ")[0] + "-" + counter;
         roomCounters.put(roomType, counter + 1);
 
-        // Update inventory and bookings
         roomInventory.put(roomType, available - 1);
         Booking booking = new Booking(guestName, roomType, roomID);
         confirmedBookings.add(booking);
@@ -53,55 +85,27 @@ class HotelInventory {
         return booking;
     }
 
-    public synchronized void displayInventory() {
-        System.out.println("\nRemaining Inventory:");
-        for (String type : roomInventory.keySet()) {
-            System.out.println(type.split(" ")[0] + ": " + roomInventory.get(type));
-        }
-        System.out.println();
-    }
-
     public List<Booking> getConfirmedBookings() {
         return Collections.unmodifiableList(confirmedBookings);
     }
 }
 
-// Booking task to run in threads
-class BookingTask implements Runnable {
-    private HotelInventory inventory;
-    private String guestName;
-    private String roomType;
-
-    public BookingTask(HotelInventory inventory, String guestName, String roomType) {
-        this.inventory = inventory;
-        this.guestName = guestName;
-        this.roomType = roomType;
-    }
-
-    @Override
-    public void run() {
-        inventory.confirmBooking(guestName, roomType);
-    }
-}
-
 // Main application
 public class BookmystayAPP {
-    public static void main(String[] args) throws InterruptedException {
-        HotelInventory inventory = new HotelInventory();
+    private static final String DATA_FILE = "hotel_inventory.dat";
 
-        // Simulate multiple concurrent booking requests
-        ExecutorService executor = Executors.newFixedThreadPool(4); // 4 concurrent threads
-
-        executor.submit(new BookingTask(inventory, "Abhi", "Single Room"));
-        executor.submit(new BookingTask(inventory, "Vanmathi", "Double Room"));
-        executor.submit(new BookingTask(inventory, "Kural", "Suite Room"));
-        executor.submit(new BookingTask(inventory, "Subha", "Single Room"));
-
-        // Shutdown executor and wait for tasks to finish
-        executor.shutdown();
-        executor.awaitTermination(5, TimeUnit.SECONDS);
-
-        // Display remaining inventory
+    public static void main(String[] args) {
+        // Load inventory from file (recovery)
+        HotelInventory inventory = HotelInventory.loadFromFile(DATA_FILE);
         inventory.displayInventory();
+
+        // Simulate some bookings
+        inventory.confirmBooking("Abhi", "Single Room");
+        inventory.confirmBooking("Vanmathi", "Double Room");
+
+        inventory.displayInventory();
+
+        // Save inventory and booking history to file
+        inventory.saveToFile(DATA_FILE);
     }
 }
