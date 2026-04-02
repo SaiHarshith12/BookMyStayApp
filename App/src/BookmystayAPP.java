@@ -1,62 +1,69 @@
-import java.util.*;
+abstract class Room {
+    protected String roomType;
+    protected int beds;
+    protected int size; // in sqft
+    protected double pricePerNight;
+    protected int availableRooms;
 
-// Booking class to represent a confirmed reservation
-class Booking {
-    private String guestName;
-    private String roomType;
-    private String reservationID;
+    public Room(String roomType, int beds, int size, double pricePerNight, int availableRooms) {
+        // Defensive programming: validate inputs
+        if (beds <= 0) throw new IllegalArgumentException("Beds must be > 0");
+        if (size <= 0) throw new IllegalArgumentException("Size must be > 0");
+        if (pricePerNight < 0) throw new IllegalArgumentException("Price cannot be negative");
+        if (availableRooms < 0) throw new IllegalArgumentException("Available rooms cannot be negative");
 
-    public Booking(String guestName, String roomType, String reservationID) {
-        this.guestName = guestName;
         this.roomType = roomType;
-        this.reservationID = reservationID;
+        this.beds = beds;
+        this.size = size;
+        this.pricePerNight = pricePerNight;
+        this.availableRooms = availableRooms;
     }
 
-    public String getGuestName() { return guestName; }
-    public String getRoomType() { return roomType; }
-    public String getReservationID() { return reservationID; }
-}
-
-// Booking history manager
-class BookingHistory {
-    private List<Booking> confirmedBookings = new ArrayList<>();
-
-    // Add a confirmed reservation
-    public void addBooking(Booking booking) {
-        confirmedBookings.add(booking);
-    }
-
-    // Retrieve all bookings (read-only)
-    public List<Booking> getConfirmedBookings() {
-        return Collections.unmodifiableList(confirmedBookings);
-    }
-
-    // Generate a summary report
-    public void generateReport() {
-        System.out.println("=== Booking History Report ===\n");
-        for (Booking booking : confirmedBookings) {
-            System.out.println("Guest: " + booking.getGuestName() +
-                    ", Room Type: " + booking.getRoomType());
-        }
-        System.out.println();
+    public void displayDetails() {
+        System.out.println(roomType + ":");
+        System.out.println("Beds: " + beds);
+        System.out.println("Size: " + size + " sqft");
+        System.out.println("Price per night: " + pricePerNight);
+        System.out.println("Available: " + availableRooms + "\n");
     }
 }
 
-// Main application class
+// Concrete room classes
+class SingleRoom extends Room {
+    public SingleRoom(int availableRooms) {
+        super("Single Room", 1, 250, 1500.0, availableRooms);
+    }
+}
+
+class DoubleRoom extends Room {
+    public DoubleRoom(int availableRooms) {
+        super("Double Room", 2, 400, 2500.0, availableRooms);
+    }
+}
+
+class SuiteRoom extends Room {
+    public SuiteRoom(int availableRooms) {
+        super("Suite Room", 3, 750, 5000.0, availableRooms);
+    }
+}
+
+// Main application
 public class BookmystayAPP {
     public static void main(String[] args) {
-        BookingHistory history = new BookingHistory();
+        try {
+            Room[] rooms = {
+                    new SingleRoom(5),
+                    new DoubleRoom(3),
+                    new SuiteRoom(2)
+            };
 
-        // Simulate confirmed bookings
-        history.addBooking(new Booking("Abhi", "Single", "S100"));
-        history.addBooking(new Booking("Subha", "Double", "D101"));
-        history.addBooking(new Booking("Vanmathi", "Suite", "SU102"));
+            System.out.println("=== Hotel Room Initialization ===\n");
+            for (Room room : rooms) {
+                room.displayDetails();
+            }
 
-        // Generate a report without modifying stored data
-        history.generateReport();
-
-        // Example of retrieving the bookings for review
-        List<Booking> bookings = history.getConfirmedBookings();
-        System.out.println("Total confirmed bookings: " + bookings.size());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error initializing rooms: " + e.getMessage());
+        }
     }
 }
