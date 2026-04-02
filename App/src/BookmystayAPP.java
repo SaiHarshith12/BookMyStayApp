@@ -15,6 +15,7 @@ abstract class Room {
         this.pricePerNight = pricePerNight;
     }
 
+    // Display room details with availability
     public void displayDetails(int availableRooms) {
         System.out.println(roomType + ":");
         System.out.println("Beds: " + beds);
@@ -47,61 +48,64 @@ class SuiteRoom extends Room {
     }
 }
 
-// Main application class
-public class BookmystayAPP {
-    // Store room availability in a HashMap
+// Inventory management class
+class HotelInventory {
     private Map<String, Integer> roomInventory = new HashMap<>();
 
-    // Initialize room availability using constructor
-    public BookmystayAPP() {
+    public HotelInventory() {
         roomInventory.put("Single Room", 5);
         roomInventory.put("Double Room", 3);
         roomInventory.put("Suite Room", 2);
     }
 
-    // Retrieve current availability
+    // Retrieve current availability (read-only)
     public int getAvailability(String roomType) {
         return roomInventory.getOrDefault(roomType, 0);
     }
 
-    // Controlled update of availability
+    // Controlled booking logic
     public boolean bookRoom(String roomType) {
         int available = getAvailability(roomType);
         if (available > 0) {
             roomInventory.put(roomType, available - 1);
             return true;
-        } else {
-            return false; // No rooms available
         }
+        return false;
     }
 
-    // Display full inventory
-    public void displayInventory(Room[] rooms) {
-        System.out.println("=== Hotel Room Inventory Status ===\n");
+    // Search method: returns room types with availability > 0
+    public void searchAvailableRooms(Room[] rooms) {
+        System.out.println("=== Available Rooms ===\n");
         for (Room room : rooms) {
-            room.displayDetails(getAvailability(room.getRoomType()));
+            int available = getAvailability(room.getRoomType());
+            if (available > 0) { // Only show rooms with availability
+                room.displayDetails(available);
+            }
         }
     }
+}
 
+// Main application class
+public class BookmystayAPP {
     public static void main(String[] args) {
-        // Initialize the app
-        BookmystayAPP app = new BookmystayAPP();
+        // Initialize inventory
+        HotelInventory inventory = new HotelInventory();
 
-        // Create room objects
+        // Create room objects (domain objects)
         Room[] rooms = {new SingleRoom(), new DoubleRoom(), new SuiteRoom()};
 
-        // Display initial inventory
-        app.displayInventory(rooms);
+        // Search for available rooms (does NOT modify inventory)
+        inventory.searchAvailableRooms(rooms);
 
-        // Example: Book a single room
-        System.out.println("Booking a Single Room...");
-        if (app.bookRoom("Single Room")) {
+        // Example: Booking a room (separate booking logic)
+        System.out.println("Booking a Double Room...\n");
+        if (inventory.bookRoom("Double Room")) {
             System.out.println("Booking successful!\n");
         } else {
-            System.out.println("No Single Rooms available!\n");
+            System.out.println("No Double Rooms available!\n");
         }
 
-        // Display updated inventory
-        app.displayInventory(rooms);
+        // Display updated available rooms after booking
+        inventory.searchAvailableRooms(rooms);
     }
 }
