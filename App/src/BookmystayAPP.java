@@ -1,60 +1,107 @@
+import java.util.HashMap;
+import java.util.Map;
+
 // Abstract Room class
 abstract class Room {
     protected String roomType;
     protected int beds;
     protected int size; // in sqft
     protected double pricePerNight;
-    protected int availableRooms;
 
-    public Room(String roomType, int beds, int size, double pricePerNight, int availableRooms) {
+    public Room(String roomType, int beds, int size, double pricePerNight) {
         this.roomType = roomType;
         this.beds = beds;
         this.size = size;
         this.pricePerNight = pricePerNight;
-        this.availableRooms = availableRooms;
     }
 
-    // Display room details
-    public void displayDetails() {
+    public void displayDetails(int availableRooms) {
         System.out.println(roomType + ":");
         System.out.println("Beds: " + beds);
         System.out.println("Size: " + size + " sqft");
         System.out.println("Price per night: " + pricePerNight);
-        System.out.println("Available: " + availableRooms + "\n");
+        System.out.println("Available Rooms: " + availableRooms + "\n");
+    }
+
+    public String getRoomType() {
+        return roomType;
     }
 }
 
 // Concrete room classes
 class SingleRoom extends Room {
-    public SingleRoom(int availableRooms) {
-        super("Single Room", 1, 250, 1500.0, availableRooms);
+    public SingleRoom() {
+        super("Single Room", 1, 250, 1500.0);
     }
 }
 
 class DoubleRoom extends Room {
-    public DoubleRoom(int availableRooms) {
-        super("Double Room", 2, 400, 2500.0, availableRooms);
+    public DoubleRoom() {
+        super("Double Room", 2, 400, 2500.0);
     }
 }
 
 class SuiteRoom extends Room {
-    public SuiteRoom(int availableRooms) {
-        super("Suite Room", 3, 750, 5000.0, availableRooms);
+    public SuiteRoom() {
+        super("Suite Room", 3, 750, 5000.0);
     }
 }
 
 // Main application class
 public class BookmystayAPP {
-    public static void main(String[] args) {
-        // Initialize rooms with availability
-        SingleRoom singleRoom = new SingleRoom(5);
-        DoubleRoom doubleRoom = new DoubleRoom(3);
-        SuiteRoom suiteRoom = new SuiteRoom(2);
+    // Store room availability in a HashMap
+    private Map<String, Integer> roomInventory = new HashMap<>();
 
-        // Display all room details
-        System.out.println("=== Hotel Room Initialization ===\n");
-        singleRoom.displayDetails();
-        doubleRoom.displayDetails();
-        suiteRoom.displayDetails();
+    // Initialize room availability using constructor
+    public BookmystayAPP() {
+        roomInventory.put("Single Room", 5);
+        roomInventory.put("Double Room", 3);
+        roomInventory.put("Suite Room", 2);
+    }
+
+    // Retrieve current availability
+    public int getAvailability(String roomType) {
+        return roomInventory.getOrDefault(roomType, 0);
+    }
+
+    // Controlled update of availability
+    public boolean bookRoom(String roomType) {
+        int available = getAvailability(roomType);
+        if (available > 0) {
+            roomInventory.put(roomType, available - 1);
+            return true;
+        } else {
+            return false; // No rooms available
+        }
+    }
+
+    // Display full inventory
+    public void displayInventory(Room[] rooms) {
+        System.out.println("=== Hotel Room Inventory Status ===\n");
+        for (Room room : rooms) {
+            room.displayDetails(getAvailability(room.getRoomType()));
+        }
+    }
+
+    public static void main(String[] args) {
+        // Initialize the app
+        BookmystayAPP app = new BookmystayAPP();
+
+        // Create room objects
+        Room[] rooms = {new SingleRoom(), new DoubleRoom(), new SuiteRoom()};
+
+        // Display initial inventory
+        app.displayInventory(rooms);
+
+        // Example: Book a single room
+        System.out.println("Booking a Single Room...");
+        if (app.bookRoom("Single Room")) {
+            System.out.println("Booking successful!\n");
+        } else {
+            System.out.println("No Single Rooms available!\n");
+        }
+
+        // Display updated inventory
+        app.displayInventory(rooms);
     }
 }
