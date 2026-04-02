@@ -1,75 +1,62 @@
 import java.util.*;
 
-// Service class
-class Service {
-    private String serviceName;
-    private double price;
+// Booking class to represent a confirmed reservation
+class Booking {
+    private String guestName;
+    private String roomType;
+    private String reservationID;
 
-    public Service(String serviceName, double price) {
-        this.serviceName = serviceName;
-        this.price = price;
+    public Booking(String guestName, String roomType, String reservationID) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+        this.reservationID = reservationID;
     }
 
-    public String getServiceName() { return serviceName; }
-    public double getPrice() { return price; }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
+    public String getReservationID() { return reservationID; }
 }
 
-// Add-on Service Manager
-class AddOnServiceManager {
-    // Map reservation ID -> list of services
-    private Map<String, List<Service>> reservationServices = new HashMap<>();
+// Booking history manager
+class BookingHistory {
+    private List<Booking> confirmedBookings = new ArrayList<>();
 
-    // Add a service to a reservation
-    public void addService(String reservationID, Service service) {
-        reservationServices.computeIfAbsent(reservationID, k -> new ArrayList<>()).add(service);
+    // Add a confirmed reservation
+    public void addBooking(Booking booking) {
+        confirmedBookings.add(booking);
     }
 
-    // Calculate total add-on cost for a reservation
-    public double calculateTotalCost(String reservationID) {
-        List<Service> services = reservationServices.getOrDefault(reservationID, Collections.emptyList());
-        double total = 0.0;
-        for (Service s : services) {
-            total += s.getPrice();
-        }
-        return total;
+    // Retrieve all bookings (read-only)
+    public List<Booking> getConfirmedBookings() {
+        return Collections.unmodifiableList(confirmedBookings);
     }
 
-    // Display services for a reservation
-    public void displayServices(String reservationID) {
-        List<Service> services = reservationServices.getOrDefault(reservationID, Collections.emptyList());
-        System.out.println("Reservation ID: " + reservationID);
-        if (services.isEmpty()) {
-            System.out.println("No add-on services selected.");
-        } else {
-            System.out.println("Selected Add-On Services:");
-            for (Service s : services) {
-                System.out.println("- " + s.getServiceName() + " ($" + s.getPrice() + ")");
-            }
-            System.out.println("Total Add-On Cost: " + calculateTotalCost(reservationID));
+    // Generate a summary report
+    public void generateReport() {
+        System.out.println("=== Booking History Report ===\n");
+        for (Booking booking : confirmedBookings) {
+            System.out.println("Guest: " + booking.getGuestName() +
+                    ", Room Type: " + booking.getRoomType());
         }
         System.out.println();
     }
 }
 
-// Main application demonstrating add-on service selection
+// Main application class
 public class BookmystayAPP {
     public static void main(String[] args) {
-        AddOnServiceManager addOnManager = new AddOnServiceManager();
+        BookingHistory history = new BookingHistory();
 
-        // Create some services
-        Service breakfast = new Service("Breakfast", 500.0);
-        Service airportPickup = new Service("Airport Pickup", 1000.0);
-        Service spa = new Service("Spa Package", 2000.0);
+        // Simulate confirmed bookings
+        history.addBooking(new Booking("Abhi", "Single", "S100"));
+        history.addBooking(new Booking("Subha", "Double", "D101"));
+        history.addBooking(new Booking("Vanmathi", "Suite", "SU102"));
 
-        // Attach services to reservations (without touching inventory)
-        addOnManager.addService("Single-1", breakfast);
-        addOnManager.addService("Single-1", airportPickup);
-        addOnManager.addService("Double-1", spa);
+        // Generate a report without modifying stored data
+        history.generateReport();
 
-        // Display selected services for each reservation
-        addOnManager.displayServices("Single-1");
-        addOnManager.displayServices("Double-1");
-        addOnManager.displayServices("Suite-1"); // no services
+        // Example of retrieving the bookings for review
+        List<Booking> bookings = history.getConfirmedBookings();
+        System.out.println("Total confirmed bookings: " + bookings.size());
     }
 }
-
